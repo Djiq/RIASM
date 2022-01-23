@@ -1,0 +1,19 @@
+RIASM - rust based asm-like interpreter
+Copyright (C) 2022 Edge#3609
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+YOU CAN BE RELEASED FROM THE REQUIREMENTS OF AGPL3.0 LICENSE BY PURCHASING A COMMERCIAL LICENSE.
+Buying such a license is mandatory as soon as one decides to stop following the requirements of AGPL3.0 license.
+For more information regarding such commercial license contact Edge#3609 via Discord
