@@ -1,7 +1,8 @@
 use core::fmt;
 use std::{any::Any, ops, result::Result};
 
-use crate::ASMDefinition;
+use crate::asm_definition::ASMDefinition;
+
 
 #[derive(Debug, Clone)]
 pub enum ASMValueHolder {
@@ -27,7 +28,7 @@ impl fmt::Display for ASMValueHolder {
 #[derive(Debug, Clone)]
 pub struct ASMValue {
     lang_definiton: Option<*mut ASMDefinition>,
-    value: ASMValueHolder
+    value: ASMValueHolder,
 }
 
 impl fmt::Display for ASMValue {
@@ -51,9 +52,11 @@ impl ASMValue {
         }
     }
 
-    pub fn new_reg(_reg_name: String, ldef: Option<*mut ASMDefinition>) -> Self{
-        ASMValue { lang_definiton: ldef, value: ASMValueHolder::Register(_reg_name)}
-
+    pub fn new_reg(_reg_name: String, ldef: Option<*mut ASMDefinition>) -> Self {
+        ASMValue {
+            lang_definiton: ldef,
+            value: ASMValueHolder::Register(_reg_name),
+        }
     }
 
     pub fn get_value_holder(&self) -> ASMValueHolder {
@@ -68,7 +71,7 @@ impl ASMValue {
         }
     }
 
-    pub fn get_lang_definition(&self) -> Option<*mut ASMDefinition>{
+    pub fn get_lang_definition(&self) -> Option<*mut ASMDefinition> {
         self.lang_definiton
     }
 
@@ -102,7 +105,6 @@ impl ASMValue {
             match self.lang_definiton {
                 Some(ptr) => unsafe {
                     let definition = &mut *ptr as &mut ASMDefinition;
-                    println!("tried to insert {}", value);
                     definition.registers.insert(reference, value.clone());
                 },
                 None => {
