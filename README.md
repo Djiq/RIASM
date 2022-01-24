@@ -56,7 +56,10 @@ fn main() {
 		.insert_register("R2")
 		.insert_instruction("MOV", |arg| arg[0].try_modify_register(arg[1].resolve()))
 		.insert_instruction("ADD", |arg| {
-			arg[0].try_modify_register(arg[0].resolve() + arg[1].resolve())		 }).insert_instruction("PRINT", |arg|println!("{}",arg[0].resolve())).run(test_vec);
+			arg[0].try_modify_register(arg[0].resolve() + arg[1].resolve())
+			})
+		.insert_instruction("PRINT", |arg|println!("{}",arg[0].resolve()))
+		.run(test_vec);
 }
 ```
 
