@@ -3,9 +3,19 @@ RIASM stands for Rust Interpreter for ASM. It is a basic, asm-like language inte
 allowing users to interface with a basic interpreter. The big benefit of using RIASM is that it is extremely bare bones, it posses no native instructions of it's own, and has no default registers, the end user must define
 every single one of these, allowing you to leverage it to define each instruction to mean whatever you like.
 
+# TODO
+
+- [ ] Make a String to Vec<ASTNode> scanner
+- [ ] Unshit *mut ASTDefinition to not use a raw pointer, but something like Rc or Arc
+- [ ] Add labels
+- [ ] Figure out how to make defining instructions not complete shit
+
+
 # How to build
 
-	cargo build --release
+``` shell
+cargo build --release
+```
 
 # How To Use
 Simply import 
@@ -46,7 +56,7 @@ fn main() {
 		.insert_register("R2")
 		.insert_instruction("MOV", |arg| arg[0].try_modify_register(arg[1].resolve()))
 		.insert_instruction("ADD", |arg| {
-		arg[0].try_modify_register(arg[0].resolve() + arg[1].resolve())		 }).insert_instruction("PRINT", |arg|println!("{}",arg[0].resolve())).run(test_vec);
+			arg[0].try_modify_register(arg[0].resolve() + arg[1].resolve())		 }).insert_instruction("PRINT", |arg|println!("{}",arg[0].resolve())).run(test_vec);
 }
 ```
 
