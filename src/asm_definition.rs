@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{asm_value::ASMValue, asm_instruction::ASMInstruction};
-
+use crate::{asm_instruction::ASMInstruction, asm_value::ASMValue};
 
 #[derive(Clone)]
 pub enum ASTNode {
@@ -16,6 +15,8 @@ pub struct ASMDefinition {
     pub instructions: HashMap<String, ASMInstruction>,
     _priority: u16,
     ptr_to_self: Option<*mut ASMDefinition>,
+    errors: u64,
+    halted: bool,
 }
 
 impl ASMDefinition {
@@ -36,6 +37,8 @@ impl ASMDefinition {
             instructions: HashMap::new(),
             _priority: 1,
             ptr_to_self: None,
+            errors: 0,
+            halted: false,
         };
         let def_ptr: *mut ASMDefinition = &mut def;
         def.ptr_to_self = Some(def_ptr);
@@ -62,27 +65,31 @@ impl ASMDefinition {
         self
     }
 
-    pub fn raise_exception(&self, error_message: &str, halt_execution: bool) {
+    pub fn raise_exception(&mut self, error_message: &str, halt_execution: bool) {
         println!("{}", error_message);
         if halt_execution {
-            panic!();
+            self.halted = true;
         }
+        self.errors += 1;
     }
 
-    pub fn run(&self, token_stream: Vec<ASTNode>) {
+    pub fn run(&mut self, token_stream: Vec<ASTNode>) {
         let mut current_instruction: Option<ASMInstruction> = None;
         let mut current_args: Vec<ASMValue> = Vec::new();
         let mut current_position: usize = 0;
         while current_position < token_stream.len() {
             let token: ASTNode = token_stream[current_position].clone();
+            if self.halted {
+                return;
+            }
             match token {
                 ASTNode::ASTValue(value) => {
                     if current_instruction.is_none() {
                         self.raise_exception(
                             "ASTValue encountered with no instruction present",
-                            false,
+                            true,
                         );
-                        return;
+                        continue;
                     }
                     current_args.push(value.clone());
                 }
@@ -90,15 +97,15 @@ impl ASMDefinition {
                     if current_instruction.is_some() {
                         self.raise_exception(
                             "ASTInstruction encountered when another instruction is called",
-                            false,
+                            true,
                         );
-                        return;
+                        continue;
                     }
                     let instruction_ref = match self.instructions.get(&instruction) {
                         Some(reference) => reference,
                         None => {
-                            self.raise_exception("Not a valid instruction", false);
-                            return;
+                            self.raise_exception("Not a valid instruction", true);
+                            continue;
                         }
                     };
                     current_instruction = Some((*instruction_ref).clone());
@@ -109,13 +116,13 @@ impl ASMDefinition {
                             "Register reference encountered with no instruction present",
                             false,
                         );
-                        return;
+                        continue;
                     }
                     let register_ref = match self.registers.get(&reference) {
                         Some(_) => ASMValue::new_reg(reference.clone(), self.ptr_to_self.clone()),
                         None => {
-                            self.raise_exception("Register not defined in ASMDefinition", false);
-                            return;
+                            self.raise_exception("Register not defined in ASMDefinition", true);
+                            continue;
                         }
                     };
 
@@ -134,5 +141,60 @@ impl ASMDefinition {
         }
     }
 
-    pub fn parse_then_run(code: String) {}
+    pub fn scan(&mut self, code: String) -> Vec<ASTNode> {
+        let mut output: Vec<ASTNode> = Vec::new();
+
+        let lines: Vec<String> = code.split("\n").map(|x| x.to_string()).collect();
+
+        for line in lines.iter() {
+            let mut usable_line: String = line.clone();
+            if usable_line.find(";;").is_some() {
+                usable_line = usable_line.split_once(";;").unwrap().0.into();
+            }
+            usable_line = usable_line.trim_end().into();
+            if usable_line.len() == 0 {
+                continue;
+            }
+            let mut words: Vec<String> = usable_line.split(" ").map(|x| x.to_string()).collect();
+            output.push(self.match_instruction(words[0].clone()));
+            words.remove(0);
+            words
+                .iter()
+                .for_each(|word| output.push(self.match_argument(word.clone())));
+            output.push(ASTNode::ASTExprEnd);
+        }
+        output
+    }
+
+    fn match_instruction(&mut self, mut word: String) -> ASTNode {
+        word.retain(|c| !c.is_whitespace());
+        if !self.instructions.contains_key(&word) {
+            self.raise_exception(format!("{} is an unknown instruction", word).as_str(), true);
+        }
+        ASTNode::ASTInstruction(word)
+    }
+
+    fn match_argument(&mut self, mut word: String) -> ASTNode {
+        word.retain(|c| !c.is_whitespace());
+        if word.len() == 0 {
+            self.raise_exception("Empty argument!", true);
+            return ASTNode::ASTExprEnd;
+        }
+        if word.chars().all(|c| c.is_numeric()) {
+            return ASTNode::ASTValue(word.parse::<i32>().unwrap().into());
+        }
+        if word.chars().all(|c| c.is_alphanumeric()) {
+            return ASTNode::ASTRegister(word);
+        }
+        if word.chars().last().unwrap() == '"' && word.chars().next().unwrap() == '"' {
+            todo!()
+        }
+
+        ASTNode::ASTExprEnd
+    }
+
+    pub fn interpret(&mut self, code: String) {
+        let ast = self.scan(code);
+        self.run(ast);
+    }
 }
