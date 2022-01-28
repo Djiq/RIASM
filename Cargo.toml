@@ -1,6 +1,6 @@
 [package]
 name = "riasm"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["EdgeLordExe <magicznyszop@gmail.com>"]
 edition = "2018"
 
