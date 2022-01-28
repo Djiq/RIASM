@@ -7,7 +7,6 @@ MOV R2 1
 ADD R1 R2
 PRINT R1"
         .into();
-    println!("{}", text);
 
     ASMDefinition::new()
         .insert_register("R1")
