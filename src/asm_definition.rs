@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{asm_instruction::ASMInstruction, asm_value::ASMValue};
+use crate::{
+    asm_instruction::ASMInstruction,
+    asm_value::{ASMValue, ASMValueHolder},
+};
 
 #[derive(Clone)]
 pub enum ASTNode {
@@ -13,10 +16,12 @@ pub enum ASTNode {
 pub struct ASMDefinition {
     pub registers: HashMap<String, ASMValue>,
     pub instructions: HashMap<String, ASMInstruction>,
+    pub labels: HashMap<String, usize>,
     _priority: u16,
     ptr_to_self: Option<*mut ASMDefinition>,
     errors: u64,
     halted: bool,
+    current_line: usize,
 }
 
 impl ASMDefinition {
@@ -35,10 +40,12 @@ impl ASMDefinition {
         let mut def = ASMDefinition {
             registers: HashMap::new(),
             instructions: HashMap::new(),
+            labels: HashMap::new(),
             _priority: 1,
             ptr_to_self: None,
             errors: 0,
             halted: false,
+            current_line: 0,
         };
         let def_ptr: *mut ASMDefinition = &mut def;
         def.ptr_to_self = Some(def_ptr);
@@ -56,7 +63,7 @@ impl ASMDefinition {
     pub fn insert_instruction(
         mut self,
         instruction_name: &str,
-        closure: fn(Vec<ASMValue>),
+        closure: fn(&mut ASMDefinition, Vec<ASMValue>),
     ) -> Self {
         self.instructions.insert(
             instruction_name.into(),
@@ -76,9 +83,8 @@ impl ASMDefinition {
     pub fn run(&mut self, token_stream: Vec<ASTNode>) {
         let mut current_instruction: Option<ASMInstruction> = None;
         let mut current_args: Vec<ASMValue> = Vec::new();
-        let mut current_position: usize = 0;
-        while current_position < token_stream.len() {
-            let token: ASTNode = token_stream[current_position].clone();
+        while self.current_line < token_stream.len() {
+            let token: ASTNode = token_stream[self.current_line].clone();
             if self.halted {
                 return;
             }
@@ -130,20 +136,41 @@ impl ASMDefinition {
                 }
                 ASTNode::ASTExprEnd => match current_instruction {
                     Some(instruction) => {
-                        instruction.call(current_args.clone());
+                        instruction.call(self, current_args.clone());
                         current_instruction = None;
                         current_args.clear();
                     }
                     None => {}
                 },
             }
-            current_position += 1;
+            self.current_line += 1;
         }
+    }
+
+    pub fn jump_to_value(&mut self, value: ASMValue) {
+        if let ASMValueHolder::Int(inner_value) = value.get_value_holder() {
+            self.jump(inner_value as usize);
+            return;
+        }
+        self.raise_exception("Invalid value of provided destination!", true);
+    }
+
+    pub fn jump_to_label(&mut self, label: ASMValue) {
+        if let ASMValueHolder::Label(label_string) = label.get_value_holder() {
+            if self.labels.contains_key(&label_string) {
+                self.jump(*self.labels.get(&label_string).unwrap());
+                return;
+            }
+        }
+        self.raise_exception("Invalid label provided!", true);
+    }
+
+    pub fn jump(&mut self, destination: usize) {
+        self.current_line = destination - 1;
     }
 
     pub fn scan(&mut self, code: String) -> Vec<ASTNode> {
         let mut output: Vec<ASTNode> = Vec::new();
-
         let lines: Vec<String> = code.split("\n").map(|x| x.to_string()).collect();
 
         for line in lines.iter() {
@@ -156,6 +183,12 @@ impl ASMDefinition {
                 continue;
             }
             let mut words: Vec<String> = usable_line.split(" ").map(|x| x.to_string()).collect();
+            if words[0].chars().last().unwrap() == ':' {
+                let mut label = words[0].clone();
+                label.retain(|c| c != ':');
+                self.labels.insert(label, output.len());
+                continue;
+            }
             output.push(self.match_instruction(words[0].clone()));
             words.remove(0);
             words
@@ -184,6 +217,11 @@ impl ASMDefinition {
             return ASTNode::ASTValue(word.parse::<i32>().unwrap().into());
         }
         if word.chars().all(|c| c.is_alphanumeric()) {
+            return ASTNode::ASTValue(ASMValue::new_label(word, None));
+        }
+        if word.chars().next().unwrap() == '[' && word.chars().last().unwrap() == ']' {
+            word.retain(|c| c.is_alphanumeric());
+            println!("{}", word);
             return ASTNode::ASTRegister(word);
         }
         if word.chars().last().unwrap() == '"' && word.chars().next().unwrap() == '"' {

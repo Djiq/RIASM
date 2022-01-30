@@ -9,6 +9,7 @@ pub enum ASMValueHolder {
     Str(String),
     Float(f32),
     Register(String),
+    Label(String),
     Invalid,
 }
 
@@ -20,6 +21,7 @@ impl fmt::Display for ASMValueHolder {
             ASMValueHolder::Float(val) => write!(f, "{}", val),
             ASMValueHolder::Register(reference) => write!(f, "{}", reference),
             ASMValueHolder::Invalid => write!(f, "NIL"),
+            ASMValueHolder::Label(val) => write!(f, "{}", val),
         }
     }
 }
@@ -41,6 +43,13 @@ impl ASMValue {
         ASMValue {
             lang_definiton: ldef,
             value: ASMValueHolder::Int(_value),
+        }
+    }
+
+    pub fn new_label(_value: String, ldef: Option<*mut ASMDefinition>) -> Self {
+        ASMValue {
+            lang_definiton: ldef,
+            value: ASMValueHolder::Label(_value),
         }
     }
 
@@ -81,6 +90,7 @@ impl ASMValue {
             ASMValueHolder::Float(_) => self.clone(),
             ASMValueHolder::Register(_) => self.try_resolve_register().unwrap(),
             ASMValueHolder::Invalid => self.clone(),
+            ASMValueHolder::Label(_) => self.clone(),
         }
     }
 
@@ -137,6 +147,7 @@ impl ops::Add<ASMValue> for ASMValue {
             ASMValueHolder::Float(_) => todo!(),
             ASMValueHolder::Invalid => ASMValue::new_empty(self.lang_definiton),
             ASMValueHolder::Register(_) => todo!(),
+            ASMValueHolder::Label(_) => todo!(),
         }
     }
 }
