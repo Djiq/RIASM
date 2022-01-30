@@ -60,6 +60,4 @@ JMP loop
         .interpret(text);
 }
 ```
-
-	
-This example will first push 1 to R1, push 1 to R2, sum them and place the sum in R1 and then display R1.
+this will print the fibonnaci sequence till the program crashes due to rusts safety preventing the integer overflow
