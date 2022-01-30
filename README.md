@@ -7,7 +7,7 @@ every single one of these, allowing you to leverage it to define each instructio
 
 - [x] Make a String to AST scanner
 - [ ] Unshit *mut ASTDefinition to not use a raw pointer, but something like Rc or Arc
-- [ ] Add labels
+- [x] Add labels
 - [ ] Figure out how to make defining instructions not complete shit
 
 
